@@ -2,10 +2,7 @@
 
 namespace MrMadClown\IncrementFileNames;
 
-use Assert\Assert;
-use Illuminate\Support\Str;
-
-class IncrementingWriteStream extends BasePlugin
+final class IncrementingWriteStream extends BasePlugin
 {
     public function getMethod()
     {

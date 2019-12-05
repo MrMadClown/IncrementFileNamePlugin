@@ -3,13 +3,38 @@
 namespace MrMadClown\IncrementFileNames\Tests;
 
 use League\Flysystem\Filesystem;
+use League\Flysystem\FilesystemInterface;
 use League\Flysystem\Memory\MemoryAdapter;
 use MrMadClown\IncrementFileNames\IncrementingWrite;
 use MrMadClown\IncrementFileNames\IncrementingWriteStream;
+use MrMadClown\IncrementFileNames\Plugin;
+use PHPUnit\Framework\MockObject\Matcher\InvokedAtMostCount;
+use PHPUnit\Framework\MockObject\Matcher\MethodName;
 use PHPUnit\Framework\TestCase;
 
 class PluginTest extends TestCase
 {
+    public function contentProvider()
+    {
+        yield ['incrementingWrite', 'some-string-content'];
+        yield ['incrementingWriteStream', fopen('php://memory', 'r')];
+    }
+
+    /** @dataProvider contentProvider */
+    public function testPlugin(string $expectedMethod, $content)
+    {
+        $fsMock = static::createMock(Filesystem::class);
+        $fsMock
+            ->expects($this->once())
+            ->method('__call')
+            ->with($expectedMethod, ['path', $content, []]);
+
+        $plugin = new Plugin();
+        $plugin->setFilesystem($fsMock);
+
+        $plugin->handle('path', $content);
+    }
+
     public function pathProvider()
     {
         yield [
@@ -43,11 +68,7 @@ class PluginTest extends TestCase
             $fs->incrementingWrite($path, 'content');
         }
 
-        $contents = collect($adapter->listContents());
-
-        foreach ($expectedPaths as $expectedPath) {
-            static::assertNotNull($contents->firstWhere('path', $expectedPath));
-        }
+        static::assertExpectedFilesArePresent($fs->listContents(), $expectedPaths);
     }
 
     /** @dataProvider pathProvider */
@@ -58,13 +79,24 @@ class PluginTest extends TestCase
         $fs->addPlugin(new IncrementingWriteStream());
 
         for ($i = 0; $i < $writes; $i++) {
-            $fs->incrementingWriteStream($path, fopen('php://memory','r'));
+            $fs->incrementingWriteStream($path, fopen('php://memory', 'r'));
         }
 
-        $contents = collect($adapter->listContents());
+        static::assertExpectedFilesArePresent($fs->listContents(), $expectedPaths);
+    }
 
+    protected static function assertExpectedFilesArePresent(array $fsContent, array $expectedPaths): void
+    {
         foreach ($expectedPaths as $expectedPath) {
-            static::assertNotNull($contents->firstWhere('path', $expectedPath));
+            static::assertCount(
+                1,
+                \array_filter(
+                    $fsContent,
+                    static function (array $content) use ($expectedPath): bool {
+                        return $content['path'] === $expectedPath;
+                    }
+                )
+            );
         }
     }
 }

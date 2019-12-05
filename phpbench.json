@@ -1,0 +1,11 @@
+{
+    "bootstrap": "vendor/autoload.php",
+    "path": "benchmarks",
+    "outputs": {
+        "output": {
+            "extends": "html",
+            "file": "benchmarks.html",
+            "title": "IncrementFileName Plugin Benchmarks"
+        }
+    }
+}

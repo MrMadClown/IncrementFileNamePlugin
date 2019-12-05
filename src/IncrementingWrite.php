@@ -2,9 +2,6 @@
 
 namespace MrMadClown\IncrementFileNames;
 
-use Assert\Assert;
-use Illuminate\Support\Str;
-
 final class IncrementingWrite extends BasePlugin
 {
     public function getMethod()
